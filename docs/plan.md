@@ -25,7 +25,7 @@
 2. Policy sort (draft 2026-10-25, `policy-sort.md`); Dakota reviews the judgment calls
 3. Move procedure text into module files; write the registry
 4. Build the server and tests (done 2026-10-25) (one test per sync case: current, behind, dirty, diverged, offline)
-5. Slim `assemble-goose-policy.sh` output; register the server in goose and Claude Code; add to agent-context manifest and both machine sync lists
+5. (done 2026-10-25) Slim `assemble-goose-policy.sh` output; register the server in goose and Claude Code; add to agent-context manifest and both machine sync lists
 6. One week on the router, then compare against the baseline; any rule whose adherence drops goes back to always-loaded
 
 ## Measurement
@@ -44,3 +44,16 @@
 - Matrix 2026-10-25 (`results/2026-10-25-matrix.md`): slim passed every check in 15/15 runs; about 57% fewer input tokens in total. Next: server, then a delegate scenario.
 - Server built (phase 4): `list_modules`, `load_module(id)`, `search_context`; 15 unit tests including one per sync case.
 - Router runs 2026-10-25 (`results/2026-10-25-router.md`): v3 used the router 20/20 with every check passing, including a delegate scenario. Next: phase 5, the live switch, which needs Dakota's go-ahead.
+
+## Phase 5 record (2026-10-25 20:35 PT, 2026-10-26T03:35:33Z)
+
+- Server registered in `~/.config/goose/config.yaml` and in Claude Code (`claude mcp add -s user`, reported connected).
+- Slim policy installed: `~/.config/goose/AGENTS.md` 16,189 bytes, from 60,761; `~/.claude/CLAUDE.md` written by the same run.
+- `agent-context/policies/ROUTER_LIVE` makes slim the default for `assemble-goose-policy.sh` and stops `extract-policy-modules.py` from overwriting module edits. Rollback: `POLICY_SET=full scripts/assemble-goose-policy.sh work` (output verified byte-identical to the pre-switch policy).
+- Backups: `config.yaml`, `AGENTS.md` and `CLAUDE.md` with suffix `.bak-2026-10-25-router-switch`.
+- Personal machine: picks up the slim policy on its next sync and assemble. Until the server is registered there, the policy's fallback (read the module file) applies.
+
+## Comparison window
+
+- Before: sessions created 2026-10-18 to 2026-10-24 PT (`baseline-2026-10-25.md`)
+- After: sessions created 2026-10-26 to 2026-11-01 PT, after goose restarts. Same queries, user and subagent sessions separately, plus router `loads.jsonl` for which modules loaded and when.

@@ -2,7 +2,7 @@
 
 A small MCP server that loads agent context on demand. A slim, always-loaded AGENTS.md holds the rules that apply on every turn; everything else is a module in a linked repo, read only when a task needs it. Before reading, the router checks the local clone, fast-forwards it from the remote once per session if it's behind, and returns the commit it read.
 
-**Status:** server built and tested in the harness; not live. Modules and the slim policy live in agent-context.
+**Status:** live since 2026-10-25 20:35 PT; one-week comparison runs 2026-10-26 to 2026-11-01. Modules and the slim policy live in agent-context.
 
 - `docs/plan.md`: decisions, build phases and measurement
 - `docs/baseline-2026-10-25.md`: token and adherence numbers before the router
