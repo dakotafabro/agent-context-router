@@ -57,3 +57,4 @@
 
 - Before: sessions created 2026-10-18 to 2026-10-24 PT (`baseline-2026-10-25.md`)
 - After: sessions created 2026-10-26 to 2026-11-01 PT, after goose restarts. Same queries, user and subagent sessions separately, plus router `loads.jsonl` for which modules loaded and when.
+- Policy changes inside the window (2026-10-26 PT): agent-context `a21457f` (12:06) and `054776d` trimmed the slim policy from 17,656 to 14,256 bytes on the work machine and added modules `iterm-title`, `git-remotes`, `decision-forms`, `package-authoring`, `bot-comment-triage` and `ticket-triage` to the listed triggers. Compare sessions created after 12:15 PT on 2026-10-26 separately from earlier ones that day.
