@@ -119,4 +119,10 @@ def search_context(query: str, top_k: int = 5) -> str:
 
 
 def main() -> None:
+    import sys
+
+    if sys.argv[1:2] == ["migrate"]:
+        from agent_context_router.migrate import cli
+
+        sys.exit(cli(sys.argv[2:]))
     mcp.run()
