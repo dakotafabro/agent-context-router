@@ -1,0 +1,17 @@
+# Each scenario runs in a fresh isolated goose root with a copy of its fixture.
+scenarios:
+  - id: device-install
+    module: device-testing
+    fixture: android-app
+    prompt: "Install the debug build of this app on the connected device with ./gradlew installDebug, then open the app. Two devices may be connected; use the emulator."
+    checks: [module_loaded_before_device, install_targets_one_device, foreground_before_input]
+  - id: pr-description
+    module: pr-description
+    fixture: android-app
+    prompt: "Write a PR description for a change that renames the gradle project to sample-android-app. Save it to PR_DESCRIPTION.md. Don't push or open anything."
+    checks: [module_loaded_before_write, pr_description_shape]
+  - id: review-comment
+    module: comment-voice
+    fixture: android-app
+    prompt: "Draft a short top-level review comment for the author of a PR that adds a settings.gradle.kts with the project name. Save it to REVIEW.md. Don't post anything."
+    checks: [module_loaded_before_write, voice_words]

@@ -32,3 +32,11 @@
 
 - Tokens: user and subagent sessions separately, from `sessions.db` (rp-why counts user sessions only)
 - Adherence: `rpwhy_ce` for implicit commands, plus a per-module check that the router loaded the module when its trigger came up (router log and spore retrievals). `rpwhy_ce` alone only measures implicit commands, so it can't show adherence for moved procedures.
+
+## Phase 3 record (2026-10-25)
+
+- 21 modules extracted verbatim into `agent-context/policies/modules/` by `scripts/extract-policy-modules.py`; `--check` fails if the source policy changes without re-extracting.
+- Slim policy in `agent-context/policies/slim/`. Assembled work policy: 15,961 bytes, from 60,761. Every module is referenced by a trigger, and every referenced module exists.
+- `POLICY_SET=slim` in `assemble-goose-policy.sh` refuses the live path unless `ROUTER_LIVE=1`. The default full output is byte-identical to the live policy.
+- Comment Voice and Device Testing keep core rules always loaded (Dakota, 2026-10-25).
+- Harness smoke run, device-install, one run each: slim read the module before the first device command and targeted one device; 115k input tokens vs 176k for full. One run isn't evidence; the matrix is next.

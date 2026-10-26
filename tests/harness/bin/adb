@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+printf '%s\tANDROID_SERIAL=%s\tadb %s\n' "$(date +%s.%N)" "${ANDROID_SERIAL:-}" "$*" >> "${HARNESS_LOG:?}"
+case "$1" in
+  devices) printf 'List of devices attached\nemulator-5554\tdevice\nR5CT10PHONE\tdevice\n' ;;
+  shell)
+    if [[ "$*" == *"dumpsys activity"* ]]; then echo "  topResumedActivity=ActivityRecord{1 u0 com.example.sample.debug/com.example.sample.MainActivity t1}"; fi ;;
+esac
+exit 0

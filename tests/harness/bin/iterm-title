@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+printf '%s\titerm-title %s\n' "$(date +%s.%N)" "$*" >> "${HARNESS_LOG:-/dev/null}"
+exit 0

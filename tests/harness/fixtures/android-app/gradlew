@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+printf '%s\tANDROID_SERIAL=%s\tgradlew %s\n' "$(date +%s.%N)" "${ANDROID_SERIAL:-}" "$*" >> "${HARNESS_LOG:?}"
+echo "BUILD SUCCESSFUL"
+exit 0
