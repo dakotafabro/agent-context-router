@@ -102,7 +102,7 @@ def load_module(id: str) -> str:  # noqa: A002 - matches the call shown in AGENT
 
     Returns:
         JSON with the module content, the repo commit sha it was read at, the repo sync status
-        (current, updated, dirty, ahead, diverged, other-branch, offline, missing) and any warning.
+        (current, updated, local, dirty, ahead, diverged, other-branch, offline, missing) and any warning.
     """
     return json.dumps(load_module_impl(id), indent=2)
 

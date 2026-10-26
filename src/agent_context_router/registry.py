@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-DEFAULT_REGISTRY = Path(__file__).resolve().parents[2] / "modules.yaml"
+DEFAULT_REGISTRY = Path.home() / ".config" / "agent-context-router" / "modules.yaml"
 
 
 @dataclass(frozen=True)
@@ -52,15 +52,22 @@ def machine_profile() -> str:
     return "work"
 
 
+def _repo_path(value: str, base: Path) -> Path:
+    path = Path(os.path.expanduser(value))
+    return path if path.is_absolute() else (base / path).resolve()
+
+
 def load_registry(path: Path | None = None, profile: str | None = None) -> Registry:
-    path = Path(os.environ.get("ACR_REGISTRY", "") or path or DEFAULT_REGISTRY)
+    path = Path(os.path.expanduser(os.environ.get("ACR_REGISTRY", "") or path or DEFAULT_REGISTRY))
+    if not path.is_file():
+        raise ValueError(f"No module registry at {path}. Set ACR_REGISTRY or create {DEFAULT_REGISTRY}; see examples/modules.yaml")
     data = yaml.safe_load(path.read_text())
     profile = profile or machine_profile()
     repos = {
         name: Repo(
             name=name,
-            remote=spec["remote"],
-            path=Path(os.path.expanduser(spec["path"])),
+            remote=spec.get("remote", ""),
+            path=_repo_path(spec["path"], path.parent),
             branch=spec.get("branch", "main"),
         )
         for name, spec in data["repos"].items()

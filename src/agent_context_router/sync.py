@@ -2,7 +2,8 @@
 
 Rules: fetch, then fast-forward only. A dirty tree, another branch checked out, a diverged
 branch, a local branch ahead of the remote, or a failed fetch all mean: read the local copy
-and report why it wasn't updated. Nothing here resets, rebases or stashes.
+and report why it wasn't updated.
+A repo with no remote is read as it is and reported as local. Nothing here resets, rebases or stashes.
 """
 from __future__ import annotations
 
@@ -49,6 +50,10 @@ def _head(repo: Path) -> str:
 
 def _sync(repo: Repo) -> SyncResult:
     path = repo.path
+    if not repo.remote:
+        head = _git(path, "rev-parse", "HEAD") if path.is_dir() else None
+        sha = head.stdout.strip() if head and head.returncode == 0 else ""
+        return SyncResult(repo.name, "local", sha, "" if path.is_dir() else f"No directory at {path}")
     if not (path / ".git").exists():
         return SyncResult(repo.name, "missing", "", f"No git clone at {path}")
 
@@ -94,7 +99,7 @@ def ensure_fresh(repo: Repo, window_seconds: float | None = None, now: float | N
         fcntl.flock(lock, fcntl.LOCK_EX)
         state = json.loads(state_path.read_text()) if state_path.exists() else {}
         entry = state.get(repo.name)
-        if entry and now - entry["checked_at"] < window_seconds and (repo.path / ".git").exists():
+        if repo.remote and entry and now - entry["checked_at"] < window_seconds and (repo.path / ".git").exists():
             sha = _head(repo.path)
             return SyncResult(repo.name, entry["status"], sha, entry.get("warning", ""), cached=True)
         result = _sync(repo)

@@ -64,7 +64,22 @@ def test_search_ranks_trigger_matches(setup):
     assert results[0]["id"] == "device-testing"
 
 
-def test_real_registry_files_exist():
-    registry = load_registry(Path(__file__).resolve().parents[2] / "modules.yaml", profile="work")
+def test_example_registry_loads_without_a_remote(monkeypatch, tmp_path):
+    monkeypatch.delenv("ACR_REGISTRY", raising=False)
+    monkeypatch.setenv("ACR_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("ACR_LOG", str(tmp_path / "loads.jsonl"))
+    example = Path(__file__).resolve().parents[2] / "examples" / "modules.yaml"
+    registry = load_registry(example, profile="work")
     missing = [m.id for m in registry.modules.values() if not registry.module_path(m).is_file()]
     assert missing == []
+    assert set(registry.modules) == {"commit-messages", "pr-description", "device-testing"}
+    monkeypatch.setenv("ACR_REGISTRY", str(example))
+    result = server.load_module_impl("device-testing")
+    assert result["repo_status"] == "local"
+    assert "ANDROID_SERIAL" in result["content"]
+
+
+def test_missing_registry_names_the_fix(monkeypatch, tmp_path):
+    monkeypatch.setenv("ACR_REGISTRY", str(tmp_path / "nope.yaml"))
+    with pytest.raises(ValueError, match="ACR_REGISTRY"):
+        load_registry()

@@ -12,8 +12,8 @@ import yaml
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
-AC = Path.home() / "development/agent-context"
-REAL_CONFIG = Path.home() / ".config/goose/config.yaml"
+AC = Path(os.environ.get("ACR_POLICY_REPO") or Path.home() / "development/agent-context")
+REAL_CONFIG = Path(os.environ.get("ACR_GOOSE_CONFIG") or Path.home() / ".config/goose/config.yaml")
 BANNED = [r"\bcorrect\b", r"\bincorrect\b", r"\bwrong\b", r"\bI'd like\b", r"\bI prefer\b", r"Happy to", r"Thoughts\?", r"—"]
 
 
@@ -35,7 +35,9 @@ def make_root(root, policy, router=False):
             "env_keys": [], "timeout": 60, "bundled": False, "available_tools": [],
         }
     (root / "config/config.yaml").write_text(yaml.safe_dump(iso))
-    (root / "config/databricks").symlink_to(Path.home() / ".config/goose/databricks")
+    provider_dir = REAL_CONFIG.parent / "databricks"
+    if provider_dir.is_dir():
+        (root / "config/databricks").symlink_to(provider_dir)
     assemble(policy, root / "config/AGENTS.md")
 
 
