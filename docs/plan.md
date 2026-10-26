@@ -24,7 +24,7 @@
 1. Baseline (done 2026-10-25, `baseline-2026-10-25.md`); keep collecting until the switch
 2. Policy sort (draft 2026-10-25, `policy-sort.md`); Dakota reviews the judgment calls
 3. Move procedure text into module files; write the registry
-4. Build the server and tests (one test per sync case: current, behind, dirty, diverged, offline)
+4. Build the server and tests (done 2026-10-25) (one test per sync case: current, behind, dirty, diverged, offline)
 5. Slim `assemble-goose-policy.sh` output; register the server in goose and Claude Code; add to agent-context manifest and both machine sync lists
 6. One week on the router, then compare against the baseline; any rule whose adherence drops goes back to always-loaded
 
@@ -42,3 +42,5 @@
 - Harness smoke run, device-install, one run each: slim read the module before the first device command and targeted one device; 115k input tokens vs 176k for full. One run isn't evidence; the matrix is next.
 
 - Matrix 2026-10-25 (`results/2026-10-25-matrix.md`): slim passed every check in 15/15 runs; about 57% fewer input tokens in total. Next: server, then a delegate scenario.
+- Server built (phase 4): `list_modules`, `load_module(id)`, `search_context`; 15 unit tests including one per sync case.
+- Router runs 2026-10-25 (`results/2026-10-25-router.md`): v3 used the router 20/20 with every check passing, including a delegate scenario. Next: phase 5, the live switch, which needs Dakota's go-ahead.

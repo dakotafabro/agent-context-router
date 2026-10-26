@@ -22,21 +22,33 @@ def assemble(policy, out):
     subprocess.run(["bash", str(AC / "scripts/assemble-goose-policy.sh"), "work", str(out)], env=env, check=True, capture_output=True)
 
 
-def make_root(root, policy):
+def make_root(root, policy, router=False):
     (root / "config").mkdir(parents=True)
     real = yaml.safe_load(REAL_CONFIG.read_text())
     iso = {k: real[k] for k in ("DATABRICKS_HOST", "providers", "active_provider") if k in real}
     iso.update({"GOOSE_TELEMETRY_ENABLED": False, "GOOSE_MODE": "auto", "extensions": {}})
+    if router:
+        iso["extensions"]["agent-context-router"] = {
+            "enabled": True, "type": "stdio", "name": "agent-context-router", "description": "Loads agent policy modules on demand",
+            "cmd": "uv", "args": ["run", "--directory", str(REPO), "agent-context-router"],
+            "envs": {"ACR_CACHE_DIR": str(root / "acr-cache"), "ACR_LOG": str(root / "router.jsonl"), "AGENT_MACHINE": "work"},
+            "env_keys": [], "timeout": 60, "bundled": False, "available_tools": [],
+        }
     (root / "config/config.yaml").write_text(yaml.safe_dump(iso))
     (root / "config/databricks").symlink_to(Path.home() / ".config/goose/databricks")
     assemble(policy, root / "config/AGENTS.md")
 
 
-def tool_calls(root):
+def tool_calls(root, session_type=None):
     db = root / "data/sessions/sessions.db"
     calls = []
+    query = "select m.content_json from messages m join sessions s on s.id = m.session_id where m.role='assistant'"
+    params = ()
+    if session_type:
+        query += " and s.session_type = ?"
+        params = (session_type,)
     with sqlite3.connect(db) as con:
-        for (content,) in con.execute("select content_json from messages where role='assistant' order by id"):
+        for (content,) in con.execute(query + " order by m.id", params):
             for part in json.loads(content):
                 if part.get("type") == "toolRequest":
                     calls.append(json.dumps(part.get("toolCall", part)))
@@ -62,7 +74,7 @@ def evaluate(sc, root, work, log):
     calls = tool_calls(root)
     lines = log.read_text().splitlines() if log.exists() else []
     mod = sc["module"]
-    mod_pat = rf"load_module[^\n]*{mod}|policies/modules/{mod}\.md"
+    mod_pat = rf"(?:load_module|loadModule)[^\n]*{mod}|policies/modules/{mod}\.md"
     loaded = first(calls, mod_pat)
     out = {"tool_calls": len(calls), "module_loaded": loaded is not None}
     for check in sc["checks"]:
@@ -70,6 +82,10 @@ def evaluate(sc, root, work, log):
             out[check] = loaded_before(calls, mod_pat, r"\badb\b|gradlew")
         elif check == "module_loaded_before_write":
             out[check] = loaded_before(calls, mod_pat, r"PR_DESCRIPTION\.md|REVIEW\.md")
+        elif check == "subagent_module_loaded":
+            sub = tool_calls(root, "sub_agent")
+            out[check] = bool(sub) and loaded_before(sub, mod_pat, r"\badb\b|gradlew")
+            out["subagent_tool_calls"] = len(sub)
         elif check == "install_targets_one_device":
             installs = [l for l in lines if "installDebug" in l or "adb install" in l]
             out[check] = bool(installs) and all("ANDROID_SERIAL=\t" not in l or " -s " in l for l in installs)
@@ -91,9 +107,10 @@ def evaluate(sc, root, work, log):
     return out
 
 
-def run_one(sc, policy, n, base):
-    root = base / policy / sc["id"] / str(n)
-    make_root(root, policy)
+def run_one(sc, policy, n, base, router=False):
+    label = policy + ("-router" if router else "")
+    root = base / label / sc["id"] / str(n)
+    make_root(root, policy, router)
     work = root / "work"
     shutil.copytree(HERE / "fixtures" / sc["fixture"], work)
     log = root / "device.log"
@@ -101,16 +118,18 @@ def run_one(sc, policy, n, base):
     env.pop("ANDROID_SERIAL", None)
     t0 = time.time()
     proc = subprocess.run(
-        ["goose", "run", "--with-builtin", "developer,code_execution", "--max-turns", "20", "-q", "-t", sc["prompt"]],
+        ["goose", "run", "--with-builtin", "developer,code_execution,summon", "--max-turns", "20", "-q", "-t", sc["prompt"]],
         cwd=work, env=env, capture_output=True, text=True, timeout=900,
     )
     res = evaluate(sc, root, work, log)
+    rlog = root / "router.jsonl"
+    res["router_loads"] = [json.loads(l).get("module") for l in rlog.read_text().splitlines()] if rlog.exists() else []
     if policy == "full":
         for k in [k for k in res if k.startswith("module_loaded")]:
             res[k] = None
     with sqlite3.connect(root / "data/sessions/sessions.db") as con:
         res["input_tokens"] = con.execute("select sum(accumulated_input_tokens) from sessions").fetchone()[0]
-    res.update({"scenario": sc["id"], "policy": policy, "run": n, "seconds": round(time.time() - t0), "exit": proc.returncode})
+    res.update({"scenario": sc["id"], "policy": label, "run": n, "seconds": round(time.time() - t0), "exit": proc.returncode})
     return res
 
 
@@ -119,13 +138,14 @@ def main():
     ap.add_argument("--policy", choices=["full", "slim"], required=True)
     ap.add_argument("--scenario")
     ap.add_argument("--runs", type=int, default=1)
+    ap.add_argument("--router", action="store_true", help="enable the agent-context-router extension")
     a = ap.parse_args()
     scs = yaml.safe_load((HERE / "scenarios.yaml").read_text())["scenarios"]
     if a.scenario:
         scs = [s for s in scs if s["id"] == a.scenario]
     base = REPO / "build/runs" / time.strftime("%Y%m%d-%H%M%S")
-    results = [run_one(s, a.policy, n, base) for s in scs for n in range(1, a.runs + 1)]
-    out = base / f"results-{a.policy}.jsonl"
+    results = [run_one(s, a.policy, n, base, a.router) for s in scs for n in range(1, a.runs + 1)]
+    out = base / f"results-{a.policy}{'-router' if a.router else ''}.jsonl"
     out.write_text("".join(json.dumps(r) + "\n" for r in results))
     for r in results:
         print(json.dumps(r))

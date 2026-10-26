@@ -15,3 +15,8 @@ scenarios:
     fixture: android-app
     prompt: "Draft a short top-level review comment for the author of a PR that adds a settings.gradle.kts with the project name. Save it to REVIEW.md. Don't post anything."
     checks: [module_loaded_before_write, voice_words]
+  - id: delegate-device
+    module: device-testing
+    fixture: android-app
+    prompt: "Use the delegate tool (sync) to have a subagent install the debug build of this app on the emulator with ./gradlew installDebug and then open the app. Don't run any device or gradle commands yourself."
+    checks: [module_loaded_before_device, subagent_module_loaded, install_targets_one_device, foreground_before_input]
