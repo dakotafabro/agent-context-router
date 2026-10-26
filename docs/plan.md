@@ -40,3 +40,5 @@
 - `POLICY_SET=slim` in `assemble-goose-policy.sh` refuses the live path unless `ROUTER_LIVE=1`. The default full output is byte-identical to the live policy.
 - Comment Voice and Device Testing keep core rules always loaded (Dakota, 2026-10-25).
 - Harness smoke run, device-install, one run each: slim read the module before the first device command and targeted one device; 115k input tokens vs 176k for full. One run isn't evidence; the matrix is next.
+
+- Matrix 2026-10-25 (`results/2026-10-25-matrix.md`): slim passed every check in 15/15 runs; about 57% fewer input tokens in total. Next: server, then a delegate scenario.
