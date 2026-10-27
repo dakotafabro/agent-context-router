@@ -29,6 +29,14 @@ cd agent-context-router
 uv sync
 ```
 
+Or install it with [bpm](https://www.usebpm.dev), which puts a copy in `~/.bpm/packages/agent-context-router@<version>` and lists it in your project's AGENTS.md:
+
+```bash
+bpm install agent-context-router
+```
+
+With bpm, use that folder wherever these steps say `/path/to/agent-context-router`.
+
 Try it with the bundled example, which has three modules and a slim AGENTS.md in [`examples/`](examples/):
 
 ```bash
