@@ -15,6 +15,7 @@ agent-context-router migrate plan ~/.config/goose/AGENTS.md ~/agent-context
 - Splits the file into sections at its main heading level: the shallowest level with at least two headings, usually `##`. Headings inside fenced code blocks don't count. A file with fewer than two headings stays one section.
 - Suggests what becomes a module. The text before the first heading always stays. Sections under about 1.2 KB stay. Larger ones are suggested as modules.
 - For each suggested module, lists up to five one-line bullets with "never", "always", "before", "must", "don't" or "do not" as `keep_lines`: rules worth keeping in the always-loaded file, so they hold even if the module never loads.
+- Keeps a section loaded if it holds a block another tool rewrites, such as bpm's package list (see [Blocks other tools rewrite](#blocks-other-tools-rewrite)).
 - Warns about lines that look like tokens, keys or passwords. Remove them from the source before migrating, because the migration folder keeps a copy.
 - Writes one file, `~/agent-context/plan.yaml`. The folder must be empty, and it can't be the source's own folder.
 
@@ -130,6 +131,10 @@ agent-context-router migrate restore ~/agent-context
 - Write outside the migration folder, except switch and restore writing the one source file.
 - Push, or add a remote.
 - Touch project or subdirectory instruction files, files the source imports, or your client config.
+
+## Blocks other tools rewrite
+
+Some tools keep their own block in AGENTS.md and rewrite it in place. bpm lists installed packages between `<!-- bpm:start -->` and `<!-- bpm:end -->`. If that block moved into a module, the next `bpm install` wouldn't find it and would add a second one. So plan keeps any section holding the block loaded, marks it `managed_by: bpm` and says so in a warning; decide doesn't ask about it, and apply refuses a plan that makes it a module. The block comes through switch word for word, so bpm keeps updating it.
 
 ## Limits
 

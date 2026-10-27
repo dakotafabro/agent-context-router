@@ -107,7 +107,7 @@ def test_plan_warns_about_secrets(tmp_path):
     path.parent.mkdir()
     path.write_text("## A\nuse ghp_" + "a" * 30 + "\n## B\nok\n")
     data = migrate.plan(path, tmp_path / "m")
-    assert data["warnings"] == ["line 2: looks like a GitHub token"]
+    assert data["warnings"] == ["line 2: looks like a GitHub token. Remove it from the source before migrating; the migration folder keeps a copy."]
 
 
 def test_apply_refuses_modules_without_triggers(source, tmp_path):
@@ -409,3 +409,62 @@ def test_cli_decide_needs_a_terminal(source, tmp_path, capsys):
     folder = fresh_plan(source, tmp_path)
     assert migrate.cli(["decide", str(folder)]) == 2
     assert "needs a terminal" in capsys.readouterr().err
+
+
+BPM_BLOCK = """<!-- bpm:start -->
+
+### Conventions
+
+- **possibility-matrix** v0.3.0 (global) - 900 tokens
+
+**Total token cost:** 900 tokens
+
+<!-- bpm:end -->
+"""
+
+
+@pytest.fixture
+def bpm_source(source):
+    source.write_text(SOURCE + "\n## Packages\n" + LONG + "\n\n" + BPM_BLOCK)
+    return source
+
+
+def test_plan_keeps_the_bpm_block_loaded(bpm_source, tmp_path):
+    folder = fresh_plan(bpm_source, tmp_path)
+    entry = plan_entries(folder)["packages"]
+    assert entry["bytes"] > migrate.MODULE_MIN_BYTES
+    assert entry["action"] == "keep"
+    assert entry["managed_by"] == "bpm"
+    warnings = yaml.safe_load((folder / "plan.yaml").read_text())["warnings"]
+    assert any("Packages holds a block that bpm rewrites" in w for w in warnings)
+
+
+def test_apply_refuses_to_move_the_bpm_block(bpm_source, tmp_path):
+    folder = planned(bpm_source, tmp_path)
+    path = folder / "plan.yaml"
+    data = yaml.safe_load(path.read_text())
+    for entry in data["sections"]:
+        if entry["id"] == "packages":
+            entry["action"] = "module"
+            entry["trigger"] = "Installing packages"
+    path.write_text(yaml.safe_dump(data, sort_keys=False))
+    with pytest.raises(MigrateError, match="packages: holds a block that bpm rewrites"):
+        migrate.apply(folder)
+
+
+def test_apply_leaves_the_bpm_block_in_the_slim_file(bpm_source, tmp_path):
+    folder = planned(bpm_source, tmp_path)
+    migrate.apply(folder)
+    slim = (folder / "AGENTS.md").read_text()
+    assert BPM_BLOCK.strip() in slim
+    assert "bpm:start" not in "".join(p.read_text() for p in (folder / "modules").glob("*.md"))
+
+
+def test_decide_never_offers_the_bpm_block(bpm_source, tmp_path):
+    folder = fresh_plan(bpm_source, tmp_path)
+    shown = []
+    ask = scripted("k", "k", "", "y")
+    assert migrate.decide(folder, ask, show=shown.append)["status"] == "approved"
+    assert ask.left == []
+    assert not any("Packages" in text for text in shown)
+    assert plan_entries(folder)["packages"]["action"] == "keep"
