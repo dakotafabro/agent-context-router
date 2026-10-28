@@ -37,6 +37,13 @@ bpm install agent-context-router
 
 With bpm, use that folder wherever these steps say `/path/to/agent-context-router`.
 
+The lockfile points at public PyPI. If your network blocks it and you install through a mirror, relock against the mirror once from the package folder, then add `--frozen` after `run` wherever you start the server, so later runs don't relock:
+
+```bash
+uv lock --default-index https://your-mirror.example/simple
+uv run --frozen agent-context-router
+```
+
 Try it with the bundled example, which has three modules and a slim AGENTS.md in [`examples/`](examples/):
 
 ```bash

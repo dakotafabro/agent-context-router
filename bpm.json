@@ -1,12 +1,12 @@
 {
   "name": "agent-context-router",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "extension",
   "description": "MCP server that loads AGENTS.md instructions on demand. Keep the rules that apply every turn in a slim AGENTS.md and load the rest from git-backed modules when the agent reaches the work their triggers name. Includes a migrate command that splits an existing AGENTS.md with backups, a guided review and a one-step restore.",
   "entry": "src/agent_context_router/server.py",
   "scope": "global",
   "token_cost": 200,
-  "files": ["src", "pyproject.toml", "uv.lock", "README.md", "HUMAN.md", "LICENSE", "docs/migrate.md", "examples"],
+  "files": ["src", "pyproject.toml", "uv.lock", "README.md", "HUMAN.md", "LICENSE", "docs", "examples"],
   "keywords": ["mcp", "agents-md", "context", "instructions", "tokens", "modules", "goose", "migrate"],
   "author": {
     "name": "Dakota Fabro",
