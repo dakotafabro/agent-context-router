@@ -1,6 +1,6 @@
 {
   "name": "agent-context-router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "extension",
   "description": "MCP server that loads AGENTS.md instructions on demand. Keep the rules that apply every turn in a slim AGENTS.md and load the rest from git-backed modules when the agent reaches the work their triggers name. Includes a migrate command that splits an existing AGENTS.md with backups, a guided review and a one-step restore.",
   "entry": "src/agent_context_router/server.py",
