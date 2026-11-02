@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-context-router"
-version = "0.1.2"
+version = "0.1.3"
 description = "MCP server that loads AGENTS.md instructions on demand from git-backed modules"
 requires-python = ">=3.10"
 dependencies = [
