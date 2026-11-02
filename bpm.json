@@ -15,6 +15,19 @@
   "license": "Apache-2.0",
   "repository": "https://github.com/dakotafabro/agent-context-router",
   "agents": ["goose", "claude-code"],
+  "server": {
+    "transport": "stdio",
+    "command": "uv",
+    "args": ["run", "--frozen", "--directory", "{package_dir}", "agent-context-router"],
+    "env": [
+      { "name": "ACR_REGISTRY", "description": "Registry file. Defaults to ~/.config/agent-context-router/modules.yaml", "required": false },
+      { "name": "AGENT_MACHINE", "description": "Machine profile, work or personal. Defaults to ~/.agent-machine, then work", "required": false },
+      { "name": "ACR_SYNC_WINDOW", "description": "Seconds between fetches of the same repo. Defaults to 1800", "required": false },
+      { "name": "ACR_CACHE_DIR", "description": "Sync state folder. Defaults to ~/.cache/agent-context-router", "required": false },
+      { "name": "ACR_LOG", "description": "Load log file. Defaults to ~/.local/state/agent-context-router/loads.jsonl", "required": false }
+    ],
+    "timeout": 300
+  },
   "dependencies": [],
   "conflicts": [],
   "peers": []
