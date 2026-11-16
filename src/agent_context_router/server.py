@@ -29,8 +29,12 @@ def _log_path() -> Path:
 def _log(event: dict) -> None:
     path = _log_path()
     path.parent.mkdir(parents=True, exist_ok=True)
+    record = {"ts": time.time(), **event}
+    session = os.environ.get("AGENT_SESSION_ID")
+    if session:
+        record["session"] = session
     with path.open("a") as f:
-        f.write(json.dumps({"ts": time.time(), **event}) + "\n")
+        f.write(json.dumps(record) + "\n")
 
 
 def _words(text: str) -> set[str]:
