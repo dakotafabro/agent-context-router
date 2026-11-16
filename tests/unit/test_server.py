@@ -49,6 +49,16 @@ def test_load_module_returns_content_and_logs(setup):
     assert log[-1]["module"] == "device-testing"
 
 
+def test_log_records_the_agent_session(setup, monkeypatch):
+    monkeypatch.setenv("AGENT_SESSION_ID", "20261116_33")
+    server.load_module_impl("device-testing")
+    monkeypatch.delenv("AGENT_SESSION_ID")
+    server.load_module_impl("device-testing")
+    log = [json.loads(line) for line in (setup / "loads.jsonl").read_text().splitlines()]
+    assert log[-2]["session"] == "20261116_33"
+    assert "session" not in log[-1]
+
+
 def test_unknown_module_lists_known(setup):
     with pytest.raises(ValueError, match="Known modules"):
         server.load_module_impl("nope")

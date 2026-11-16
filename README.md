@@ -91,7 +91,7 @@ Checked on 2026-10-26 in both clients with the bundled example: goose v1.56.0 (`
 - `load_module(id)`: the module's text, plus the commit it was read at, the repo's sync status and any warning
 - `search_context(query, top_k)`: modules that match a task description, for when no trigger obviously applies
 
-Each `load_module`, `search_context` and directory `list_modules` call is appended to `~/.local/state/agent-context-router/loads.jsonl`, so you can see which modules agents actually load.
+Each `load_module`, `search_context` and directory `list_modules` call is appended to `~/.local/state/agent-context-router/loads.jsonl`, so you can see which modules agents actually load. When the client sets `AGENT_SESSION_ID` (goose does), each line carries it as `session`, so loads can be grouped by session.
 
 ## Migrating an existing AGENTS.md
 
