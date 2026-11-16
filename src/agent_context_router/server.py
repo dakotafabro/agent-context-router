@@ -14,8 +14,8 @@ from agent_context_router.sync import ensure_fresh
 INSTRUCTIONS = """Loads agent policy modules on demand.
 
 The always-loaded AGENTS.md lists each module with a trigger. Before doing the work a trigger
-names, call load_module with that id. Use list_modules to see every module, and search_context
-when no trigger obviously matches. Each load reports the repo commit it read and any reason the
+names, call load_module with that id. Use list_modules to see every module, list_modules with a
+dir for that directory's index card, and search_context when no trigger obviously matches. Each load reports the repo commit it read and any reason the
 local copy couldn't be updated.
 """
 
@@ -37,12 +37,33 @@ def _words(text: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9]+", text.lower()) if len(w) > 2}
 
 
-def list_modules_impl() -> list[dict]:
+def _entry(m) -> dict:
+    entry = {"id": m.id, "trigger": m.trigger, "repo": m.repo, "file": m.file}
+    if m.dir:
+        entry["dir"] = m.dir
+    return entry
+
+
+def list_modules_impl(dir: str | None = None) -> list[dict] | dict:  # noqa: A002 - matches the tool argument
     registry = load_registry()
-    return [
-        {"id": m.id, "trigger": m.trigger, "repo": m.repo, "file": m.file}
-        for m in registry.modules.values()
-    ]
+    if not dir:
+        return [_entry(m) for m in registry.modules.values()]
+    name = dir.strip().strip("/")
+    directory = registry.dirs.get(name)
+    if directory is None:
+        known = ", ".join(sorted(registry.dirs)) or "none declared"
+        raise ValueError(f"Unknown dir '{dir}'. Known dirs: {known}")
+    modules = [_entry(m) for m in registry.modules.values() if m.dir == name]
+    card = None
+    path = registry.card_path(directory)
+    if path is not None:
+        if directory.repo:
+            ensure_fresh(registry.repos[directory.repo])
+        if path.is_file():
+            card = path.read_text()
+    missing = [m["id"] for m in modules if card is not None and m["id"] not in card]
+    _log({"event": "index", "dir": name, "modules": [m["id"] for m in modules]})
+    return {"dir": name, "summary": directory.summary, "card": card, "modules": modules, "missing_from_card": missing}
 
 
 def load_module_impl(module_id: str) -> dict:
@@ -88,9 +109,15 @@ def search_context_impl(query: str, top_k: int = 5) -> list[dict]:
 
 
 @mcp.tool()
-def list_modules() -> str:
-    """List every policy module available on this machine, with the trigger that says when to load it."""
-    return json.dumps(list_modules_impl(), indent=2)
+def list_modules(dir: str | None = None) -> str:  # noqa: A002 - a directory name, as in the registry
+    """List every policy module available on this machine, with the trigger that says when to load it.
+
+    Args:
+        dir: Optional directory name (e.g. "ship"). Returns that directory's index card instead:
+            its summary, its card text if it has one, and its modules with their triggers.
+            Modules still load one at a time with load_module.
+    """
+    return json.dumps(list_modules_impl(dir), indent=2)
 
 
 @mcp.tool()

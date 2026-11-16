@@ -87,11 +87,11 @@ Checked on 2026-10-26 in both clients with the bundled example: goose v1.56.0 (`
 
 ## Tools
 
-- `list_modules`: every module available on this machine, with its trigger
+- `list_modules(dir)`: every module available on this machine, with its trigger and directory. With `dir`, that directory's index card instead (see Directories)
 - `load_module(id)`: the module's text, plus the commit it was read at, the repo's sync status and any warning
 - `search_context(query, top_k)`: modules that match a task description, for when no trigger obviously applies
 
-Each `load_module` and `search_context` call is appended to `~/.local/state/agent-context-router/loads.jsonl`, so you can see which modules agents actually load.
+Each `load_module`, `search_context` and directory `list_modules` call is appended to `~/.local/state/agent-context-router/loads.jsonl`, so you can see which modules agents actually load.
 
 ## Migrating an existing AGENTS.md
 
@@ -149,6 +149,23 @@ modules:
 - A repo without `remote` is read as it is, with status `local`.
 - A module with `profile` loads only on machines with that profile, from `AGENT_MACHINE` or `~/.agent-machine` (`work` or `personal`, default `work`). A module without one loads everywhere.
 - A module's `file` must stay inside its repo.
+
+### Directories
+
+A directory groups modules by the kind of work they serve, the way a codebase groups helpers by what they're for. It's a label, not a folder: module files stay where they are, and modules still load one at a time.
+
+```yaml
+dirs:
+  ship: {summary: "Getting your own change merged", repo: team-policy, file: dirs/ship.md}
+  review: {summary: "Reviewing someone else's PR"}
+
+modules:
+  - {id: pr-description, repo: team-policy, file: modules/pr-description.md, trigger: "Writing or updating a PR description", dir: ship}
+```
+
+- A module's `dir` must be declared under `dirs`, so a typo fails at load instead of hiding the module from its index.
+- `list_modules(dir="ship")` returns the directory's summary, its index card (the optional `file`, synced like a module), and its modules with their triggers. `missing_from_card` names any module in the directory that the card doesn't mention, so the card and the registry can't drift apart unnoticed.
+- Loading a whole directory at once is left out on purpose. In the author's load log, at least one of four modules that are usually used together loaded in 107 of 158 windows, but all four only in 25, so a bundle would load mostly unused text.
 
 ## Sync
 
