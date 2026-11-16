@@ -83,3 +83,70 @@ def test_missing_registry_names_the_fix(monkeypatch, tmp_path):
     monkeypatch.setenv("ACR_REGISTRY", str(tmp_path / "nope.yaml"))
     with pytest.raises(ValueError, match="ACR_REGISTRY"):
         load_registry()
+
+
+@pytest.fixture
+def dirs(setup):
+    repo = setup / "policy"
+    (repo / "dirs").mkdir()
+    (repo / "dirs" / "ship.md").write_text("# ship/\n- pr-description: when the PR text changes\n")
+    path = setup / "modules.yaml"
+    data = yaml.safe_load(path.read_text())
+    data["modules"] = [m for m in data["modules"] if m["id"] != "escape"]
+    data["dirs"] = {
+        "ship": {"summary": "Getting a change merged", "repo": "policy", "file": "dirs/ship.md"},
+        "review": {"summary": "Reviewing someone else's PR"},
+    }
+    data["modules"].append({"id": "commit-messages", "repo": "policy", "file": "modules/pr-description.md", "trigger": "Before a commit", "dir": "ship"})
+    for m in data["modules"]:
+        if m["id"] == "pr-description":
+            m["dir"] = "ship"
+    path.write_text(yaml.safe_dump(data))
+    return setup
+
+
+def test_list_modules_shows_dir_labels(dirs):
+    entries = {m["id"]: m for m in server.list_modules_impl()}
+    assert entries["pr-description"]["dir"] == "ship"
+    assert "dir" not in entries["device-testing"]
+
+
+def test_dir_returns_index_card_and_flags_missing_modules(dirs):
+    card = server.list_modules_impl("ship/")
+    assert card["dir"] == "ship"
+    assert card["summary"] == "Getting a change merged"
+    assert "when the PR text changes" in card["card"]
+    assert [m["id"] for m in card["modules"]] == ["pr-description", "commit-messages"]
+    assert card["missing_from_card"] == ["commit-messages"]
+    log = [json.loads(line) for line in (dirs / "loads.jsonl").read_text().splitlines()]
+    assert log[-1] == {**log[-1], "event": "index", "dir": "ship"}
+
+
+def test_dir_without_card_still_lists_modules(dirs):
+    card = server.list_modules_impl("review")
+    assert card["card"] is None
+    assert card["modules"] == []
+    assert card["missing_from_card"] == []
+
+
+def test_unknown_dir_lists_known(dirs):
+    with pytest.raises(ValueError, match="Known dirs: review, ship"):
+        server.list_modules_impl("nope")
+
+
+def test_module_with_undeclared_dir_is_refused(dirs):
+    path = dirs / "modules.yaml"
+    data = yaml.safe_load(path.read_text())
+    data["modules"][0]["dir"] = "typo"
+    path.write_text(yaml.safe_dump(data))
+    with pytest.raises(ValueError, match="unknown dir typo"):
+        load_registry()
+
+
+def test_card_outside_repo_is_refused(dirs):
+    path = dirs / "modules.yaml"
+    data = yaml.safe_load(path.read_text())
+    data["dirs"]["ship"]["file"] = "../outside.md"
+    path.write_text(yaml.safe_dump(data))
+    with pytest.raises(ValueError, match="outside its repo"):
+        server.list_modules_impl("ship")

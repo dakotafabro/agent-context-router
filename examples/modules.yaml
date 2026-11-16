@@ -3,7 +3,10 @@ repos:
   example:
     path: .
 
+dirs:
+  ship: {summary: "Getting your own change merged"}
+
 modules:
-  - {id: commit-messages, repo: example, file: modules/commit-messages.md, trigger: "Before writing a commit message or amending a commit"}
-  - {id: pr-description, repo: example, file: modules/pr-description.md, trigger: "Writing or updating a PR description"}
+  - {id: commit-messages, repo: example, file: modules/commit-messages.md, trigger: "Before writing a commit message or amending a commit", dir: ship}
+  - {id: pr-description, repo: example, file: modules/pr-description.md, trigger: "Writing or updating a PR description", dir: ship}
   - {id: device-testing, repo: example, file: modules/device-testing.md, trigger: "Before any adb command or device install", profile: work}
